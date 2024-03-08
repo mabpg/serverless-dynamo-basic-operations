@@ -1,0 +1,66 @@
+service: serverless-dynamo-basic-operations
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+frameworkVersion: "3"
+
+custom:
+  myStage: ${opt:stage, 'dev'}
+  settings:
+    ITEMS_DYNAMODB_TABLE: greetNames
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  environment: ${self:custom.settings}
+  region: us-east-1
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+       - "dynamodb:*"
+      Resource:
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.settings.ITEMS_DYNAMODB_TABLE}"
+
+functions:
+  saveItem:
+    handler: handler.saveItem
+    events:
+      - http:
+          path: item
+          method: post
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+
+  getItem:
+    handler: handler.getItem
+    events:
+      - http:
+          path: item/{itemId}
+          method: get
+
+resources:
+  Resources:
+    ImagesTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "itemId"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "itemId"
+            KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.settings.ITEMS_DYNAMODB_TABLE}
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+
